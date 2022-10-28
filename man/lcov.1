@@ -1,4 +1,4 @@
-.TH lcov 1 "LCOV 1.12" 2014\-06\-10 "User Manuals"
+.TH lcov 1 "LCOV 1.16" 2022\-06\-03 "User Manuals"
 .SH NAME
 lcov \- a graphical GCOV front\-end
 .SH SYNOPSIS
@@ -49,6 +49,11 @@ lcov \- a graphical GCOV front\-end
 .br
 .RB [ \-\-compat
 .IR  mode =on|off|auto]
+.br
+.RB [ \-\-include
+.IR pattern ]
+.RB [ \-\-exclude
+.IR pattern ]
 .br
 .RE
 
@@ -165,6 +170,8 @@ lcov \- a graphical GCOV front\-end
 .RS 5
 .br
 .RB [ \-q | \-\-quiet ]
+.RB [ \-\-fail-under-lines
+.IR percentage ]
 .br
 .RE
 
@@ -193,7 +200,7 @@ you have to complete the following preparation steps:
 For Linux kernel coverage:
 .RS
 Follow the setup instructions for the gcov\-kernel infrastructure:
-.I http://ltp.sourceforge.net/coverage/gcov.php
+.I https://docs.kernel.org/dev-tools/gcov.html
 .br
 
 
@@ -476,6 +483,32 @@ where the counter files ending with .da will be stored).
 Note that you may specify this option more than once.
 .RE
 
+.B \-\-exclude
+.I pattern
+.br
+.RS
+Exclude source files matching
+.IR pattern .
+
+Use this switch if you want to exclude coverage data for a particular set
+of source files matching any of the given patterns. Multiple patterns can be
+specified by using multiple
+.B --exclude
+command line switches. The
+.I patterns
+will be interpreted as shell wildcard patterns (note that they may need to be
+escaped accordingly to prevent the shell from expanding them first).
+
+Note: The pattern must be specified to match the
+.B absolute
+path of each source file.
+
+Can be combined with the
+.B --include
+command line switch. If a given file matches both the include pattern and the
+exclude pattern, the exclude pattern will take precedence.
+.RE
+
 .B \-\-external
 .br
 .B \-\-no\-external
@@ -512,6 +545,10 @@ escaped accordingly to prevent the shell from expanding them first).
 Every file entry in
 .I tracefile
 which matches at least one of those patterns will be extracted.
+
+Note: The pattern must be specified to match the
+.B absolute
+path of each source file.
 
 The result of the extract operation will be written to stdout or the tracefile
 specified with \-o.
@@ -554,6 +591,27 @@ Specify the location of the gcov tool.
 .br
 .RS
 Print a short help text, then exit.
+.RE
+
+.B \-\-include
+.I pattern
+.br
+.RS
+Include source files matching
+.IR pattern .
+
+Use this switch if you want to include coverage data for only a particular set
+of source files matching any of the given patterns. Multiple patterns can be
+specified by using multiple
+.B --include
+command line switches. The
+.I patterns
+will be interpreted as shell wildcard patterns (note that they may need to be
+escaped accordingly to prevent the shell from expanding them first).
+
+Note: The pattern must be specified to match the
+.B absolute
+path of each source file.
 .RE
 
 .B \-\-ignore\-errors
@@ -755,6 +813,10 @@ Every file entry in
 .I tracefile
 which matches at least one of those patterns will be removed.
 
+Note: The pattern must be specified to match the
+.B absolute
+path of each source file.
+
 The result of the remove operation will be written to stdout or the tracefile
 specified with \-o.
 
@@ -782,6 +844,14 @@ Note that you may specify this option more than once.
 
 Only one of  \-z, \-c, \-a, \-e, \-r, \-l, \-\-diff or \-\-summary may be
 specified at a time.
+.RE
+
+.B \-\-fail-under-lines
+.I percentage
+.br
+.RS
+Use this option together with \-\-summary to tell lcov to exit with a status of 1 if the total
+line coverage is less than percentage.
 .RE
 
 .B \-t

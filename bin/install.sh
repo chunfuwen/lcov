@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # install.sh [--uninstall] sourcefile targetfile [install options]
 #
@@ -34,7 +34,12 @@ do_install()
   local TARGET=$2
   local PARAMS=$3
 
-  install -p -D $PARAMS $SOURCE $TARGET
+  install -d $(dirname $TARGET)
+  install -p $PARAMS $SOURCE $TARGET
+  if [ -n "$LCOV_PERL_PATH" ] ; then
+    # Replace Perl interpreter specification
+    sed -e "1 s%^#\!.*perl.*$%#\!$LCOV_PERL_PATH%" -i $TARGET
+  fi
 }
 
 
@@ -50,7 +55,7 @@ do_uninstall()
   # Does target exist?
   if test -r $TARGET ; then
     # Is target of the same version as this package?
-    if diff -I '^our \$lcov_version' -I '^\.TH ' $SOURCE $TARGET >/dev/null; then
+    if diff -I '^our \$lcov_version' -I '^\.TH ' -I '^#!' $SOURCE $TARGET >/dev/null; then
       rm -f $TARGET
     else
       echo WARNING: Skipping uninstall for $TARGET - versions differ! >&2
