@@ -236,9 +236,9 @@ sub write_test_table_prolog(*$);
 sub write_test_table_entry(*$$);
 sub write_test_table_epilog(*);
 
-sub write_source($$$$$$$);
+sub write_source($$$$$$$$);
 sub write_source_prolog(*);
-sub write_source_line(*$$$$$);
+sub write_source_line(*$$$$$$);
 sub write_source_epilog(*);
 
 sub write_frameset(*$$$);
@@ -1341,7 +1341,7 @@ sub process_file($$$)
 		     "$rel_dir/$base_name", $lines_found, $lines_hit,
 		     $fn_found, $fn_hit, $br_found, $br_hit, 0);
 	@source = write_source(*HTML_HANDLE, $filename, $sumcount, $checkdata,
-			       $converted, $funcdata, $sumbrcount);
+			       $converted, $funcdata, $sumbrcount, $testdata);
 
 	write_html_epilog(*HTML_HANDLE, $base_dir, 1);
 	close(*HTML_HANDLE);
@@ -4309,9 +4309,9 @@ sub format_count($$)
 # by gen_png()
 #
 
-sub write_source_line(*$$$$$)
+sub write_source_line(*$$$$$$)
 {
-	my ($handle, $line, $source, $count, $converted, $brdata) = @_;
+	my ($handle, $line, $source, $count, $converted, $brdata, $testdata) = @_;
 	my $source_format;
 	my $count_format;
 	my $result;
@@ -4320,6 +4320,15 @@ sub write_source_line(*$$$$$)
 	my $count_field_width = $line_field_width - 1;
 	my @br_html;
 	my $html;
+	my $testname = "Test name:";
+	my $tmptestname;
+
+	foreach $tmptestname (keys(%{$testdata}))
+	{
+		if ($testdata->{$tmptestname}->{$line}) {
+			$testname .= " $tmptestname"
+		}
+	}
 
 	# Get branch HTML data for this line
 	@br_html = get_branch_html($brdata) if ($br_coverage);
@@ -4341,7 +4350,7 @@ sub write_source_line(*$$$$$)
 	}
 	else {
 		$result		= $count;
-		$source_format	= '<span class="lineCov">';
+		$source_format	= '<span class="lineCov" title="'.$testname.'">';
 		$count_format	= format_count($count, $count_field_width);
 	}
 	$result .= ":".$source;
@@ -5259,7 +5268,7 @@ sub get_hash_reverse($)
 # Die on error.
 #
 
-sub write_source($$$$$$$)
+sub write_source($$$$$$$$)
 {
 	local *HTML_HANDLE = $_[0];
 	local *SOURCE_HANDLE;
@@ -5271,6 +5280,7 @@ sub write_source($$$$$$$)
 	my $converted = $_[4];
 	my $funcdata  = $_[5];
 	my $sumbrcount = $_[6];
+	my $testdata = $_[7];
 	my $datafunc = get_hash_reverse($funcdata);
 	my @file;
 
@@ -5326,7 +5336,8 @@ sub write_source($$$$$$$)
 		      write_source_line(HTML_HANDLE, $line_number,
 					$_, $count_data{$line_number},
 					$converted->{$line_number},
-					$sumbrcount->{$line_number}));
+					$sumbrcount->{$line_number},
+					$testdata));
 	}
 
 	close(SOURCE_HANDLE);

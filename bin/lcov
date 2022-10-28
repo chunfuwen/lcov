@@ -3370,7 +3370,7 @@ sub read_diff($)
 			};
 			# Start of diff block:
 			# @@ -old_start,old_num, +new_start,new_num @@
-			/^\@\@\s+-(\d+),(\d+)\s+\+(\d+),(\d+)\s+\@\@$/ && do
+			/^\@\@\s+-(\d+),(\d+)\s+\+(\d+),(\d+)\s+\@\@/ && do
 			{
 			$in_block = 1;
 			while ($num_old < $1)
@@ -3609,7 +3609,7 @@ sub get_line_hash($$$)
 		$sep = '/' if (!/^\//);
 
 		# Try to match diff filename with filename
-		if ($filename =~ /^\Q$diff_path$sep$_\E$/)
+		if ($filename =~ /\Q$diff_path$sep$_\E$/)
 		{
 			if ($diff_name)
 			{
@@ -3743,6 +3743,7 @@ sub adjust_fncdata($$$)
 		my $fnccount = $testfncdata->{$testname};
 
 		foreach $func (keys(%{$fnccount})) {
+			next unless exists $funcdata->{$func};
 			if (!defined($funcdata->{$func})) {
 				delete($fnccount->{$func});
 			}
@@ -3751,6 +3752,7 @@ sub adjust_fncdata($$$)
 	# Remove count data in sumfnccount for functions which are no longer
 	# in funcdata
 	foreach $func (keys(%{$sumfnccount})) {
+		next unless exists $funcdata->{$func};
 		if (!defined($funcdata->{$func})) {
 			delete($sumfnccount->{$func});
 		}
