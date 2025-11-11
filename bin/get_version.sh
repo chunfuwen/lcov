@@ -9,25 +9,25 @@ TOOLDIR=$(cd "$DIRPATH" >/dev/null ; pwd)
 GITVER=$(cd "$TOOLDIR" ; git describe --tags 2>/dev/null)
 
 if [ -z "$GITVER" ] ; then
-	# Get version information from file
-	if [ -e "$TOOLDIR/../.version" ] ; then
-		source "$TOOLDIR/../.version"
-	fi
+        # Get version information from file
+        if [ -e "$TOOLDIR/../.version" ] ; then
+                source "$TOOLDIR/../.version"
+        fi
 else
-	# Get version information from git
-	FULL=${GITVER:1}
-	VERSION=${GITVER%%-*}
-	VERSION=${VERSION:1}
-	if [ "${GITVER#*-}" != "$GITVER" ] ; then
-		RELEASE=${GITVER#*-}
-		RELEASE=${RELEASE/-/.}
-	fi
+        # Get version information from git
+        FULL=${GITVER#v}
+        VERSION=${GITVER%%-*}
+        VERSION=${VERSION#v}
+        if [ "${GITVER#*-}" != "$GITVER" ] ; then
+                RELEASE=${GITVER#*-}
+                RELEASE=${RELEASE/-/.}
+        fi
 fi
 
 # Fallback
-[ -z "$VERSION" ] && VERSION="1.0"
-[ -z "$RELEASE" ] && RELEASE="1"
-[ -z "$FULL" ]    && FULL="$VERSION"
+[ -z "$VERSION" ] && VERSION="2.4"
+[ -z "$RELEASE" ] && RELEASE="beta"
+[ -z "$FULL" ]    && FULL="$VERSION-$RELEASE"
 
 [ "$1" == "--version" ] && echo -n "$VERSION"
 [ "$1" == "--release" ] && echo -n "$RELEASE"

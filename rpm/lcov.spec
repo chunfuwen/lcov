@@ -1,6 +1,6 @@
-Summary: A graphical GCOV front-end
+Summary: A graphical code coverage front-end
 Name: lcov
-Version: 1.16
+Version: 2.4
 Release: 1
 License: GPLv2+
 Group: Development/Tools
@@ -9,12 +9,29 @@ Source0: https://github.com/linux-test-project/%{name}/releases/download/v%{vers
 BuildRoot: %{_tmppath}/%{name}-%{version}-root
 BuildArch: noarch
 Requires: perl >= 5.8.8
+Prefix: /usr
+Prefix: /etc
+
+# Force older/more compatible payload compression and digest versions
+%define _binary_filedigest 1
+%define _binary_payload w9.gzdio
+%global __python %{__python3}
+
+# lcov Perl modules are not intended for use by other packages
+%define __requires_exclude ^perl\\(lcovutil\\)$|^perl\\((criteria)\\)$|^perl\\((annotateutil)\\)$|^perl\\((gitblame)\\)$|^perl\\((gitversion)\\)$|^perl\\((select)\\)$|^perl\\((p4annotate)\\)
+%define __provides_exclude ^perl.*$
+
+%define _binaries_in_noarch_packages_terminate_build 0
 
 %description
-LCOV is a graphical front-end for GCC's coverage testing tool gcov. It collects
-gcov data for multiple source files and creates HTML pages containing the
-source code annotated with coverage information. It also adds overview pages
-for easy navigation within the file structure.
+LCOV is a set of command line tools that can be used to collect, process, and
+visualize code coverage data in an easy-to-use way. It aims to be suitable for
+projects of a wide range of sizes, with particular focus on deployment in
+automated CI/CD systems and large projects implemented using multiple languages.
+
+LCOV works with existing environment-specific profiling mechanisms including,
+but not limited to, the gcov tool that is part of the GNU Compiler Collection
+(GCC).
 
 %prep
 %setup -q -n %{name}-%{version}
@@ -32,7 +49,9 @@ rm -rf $RPM_BUILD_ROOT
 %files
 %defattr(-,root,root)
 /usr/bin/*
+/usr/lib/*
 /usr/share/man/man*/*
+/usr/share/lcov/*
 %config /etc/*
 
 %changelog

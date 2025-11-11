@@ -1,0 +1,145 @@
+#
+#   Copyright (c) 2024 Sebastian Pipping <sebastian@pipping.org>
+#
+#   This program is free software;  you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation; either version 2 of the License, or (at
+#   your option) any later version.
+#
+#   This program is distributed in the hope that it will be useful, but
+#   WITHOUT ANY WARRANTY;  without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#   General Public License for more details.
+#
+#   You should have received a copy of the GNU General Public License
+#   along with this program;  if not, see
+#   <http://www.gnu.org/licenses/>.
+#
+name: Run the test suite
+
+on:
+  pull_request:
+  push:
+  schedule:
+    - cron: '0 14 * * 5'  # Every Friday 2pm
+  workflow_dispatch:
+
+# Drop permissions to minimum for security
+permissions:
+  contents: read
+
+jobs:
+  test_suite:
+    name: "Run the test suite (GCC ${{ matrix.gcc }}, ${{ matrix.runs-on }})"
+    runs-on: ${{ matrix.runs-on }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runs-on: ubuntu-24.04
+            gcc: 9
+            install: g++-9 gcc-9 cpp-9
+          - runs-on: ubuntu-24.04
+            gcc: 10
+            install: g++-10 gcc-10 cpp-10
+          # GCC 10 to 14 are assumed to behave "the same",
+          # so we are skipping GCC 11, 12, 13 here to save CI resources
+          - runs-on: ubuntu-24.04
+            gcc: 14
+            install:
+          - runs-on: ubuntu-24.04
+            gcc: 15
+            install: binutils g++-15 gcc-15 cpp-15
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Add repository "ubuntu-toolchain-r" for GCC 15
+        if: "${{ matrix.gcc == '15' }}"
+        run: |
+          set -x
+          # The repository is at home at https://launchpad.net/~ubuntu-toolchain-r/+archive/ubuntu/test .
+          # NOTE: plucky is 25.04 (not 24.04 LTS)
+          wget -O - 'https://keyserver.ubuntu.com/pks/lookup?op=get&search=0xc8ec952e2a0e1fbdc5090f6a2c277a0a352154e5' | sudo apt-key add -
+          sudo add-apt-repository 'deb https://ppa.launchpadcontent.net/ubuntu-toolchain-r/test/ubuntu plucky main'
+
+      - name: Install dependencies
+        run: |-
+          ubuntu_packages=(
+            # Perl runtime dependencies as documented in README
+            libcapture-tiny-perl       # CPAN Capture::Tiny
+            libdatetime-perl           # CPAN DateTime
+            libdevel-cover-perl        # CPAN Devel::Cover
+            libdigest-md5-file-perl    # CPAN Digest::MD5
+            libfile-spec-native-perl   # CPAN File::Spec
+            libjson-xs-perl            # CPAN JSON::XS
+                                       # CPAN Memory::Process, see below
+                                       # CPAN Module::Load::Conditional
+            libscalar-list-utils-perl  # CPAN Scalar::Util
+                                       # CPAN Time::HiRes
+            libtimedate-perl           # CPAN TimeDate
+
+            # Non-Perl runtime dependencies as documented in README
+            llvm                       # for command "llvm-profdata"
+            python3-coverage           # PyPI coverage
+            python3-xlsxwriter         # PyPI xlsxwriter
+
+            # Additional dependencies for "make check"
+            libgd-perl                 # CPAN GD
+          )
+          set -x
+
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends --yes -V "${ubuntu_packages[@]}"
+
+          sudo perl -MCPAN -e 'install(Memory::Process)'  # no package in Ubuntu
+
+      - name: "Make GCC ${{ matrix.gcc }} systemwide default"
+        run: |-
+          set -x -o pipefail
+          if [[ "${{ matrix.install }}" != "" ]]; then
+            sudo apt-get update
+            sudo apt-get install --no-install-recommends --yes -V ${{ matrix.install }}
+          fi
+
+          # Make requested version GCC and GCOV the system default
+          # before we have an easy way to fully divert "make check"
+          # off of the default commands
+          for i in cpp {,x86_64-linux-gnu-}{g++,gcc{,-{ar,nm,ranlib}},gcov{,-{dump,tool}},gfortran} lto-dump ; do
+            [[ -e /usr/bin/"${i}" ]] || continue
+            [[ -e /usr/bin/"${i}-${{ matrix.gcc }}" ]] || continue
+            sudo rm /usr/bin/"${i}"
+            sudo ln -s "${i}-${{ matrix.gcc }}" /usr/bin/"${i}"
+            "${i}" --version | head -n1
+          done
+
+      - name: make install
+        run: |-
+          set -x -o pipefail
+          make install PREFIX=/usr CFG_DIR=/etc DESTDIR="${PWD}/ROOT"
+          find ROOT/ | sort | xargs -r ls -ld
+
+      - name: make uninstall
+        run: |-
+          set -x -o pipefail
+          make uninstall PREFIX=/usr CFG_DIR=/etc DESTDIR="${PWD}/ROOT"
+          find ROOT/ | sort | xargs -r ls -ld
+          diff -u0 <(echo 'total 0') <(ls -l ROOT/)  # i.e. fail CI if leftovers
+
+      - name: make check
+        run: |-
+          set -x -o pipefail
+          make check
+
+      - name: Upload test log as an artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: "lcov-${{ github.sha }}-${{ runner.os }}-GCC-${{ matrix.gcc }}-test-log"  # .zip
+          path: tests/test.log
+          if-no-files-found: error
+
+      - name: Upload test directory shrapnel  as an artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: "lcov-${{ github.sha }}-${{ runner.os }}-GCC-${{ matrix.gcc }}-shrapnel"  # .zip
+          path: tests
+          #if-no-files-found: error
