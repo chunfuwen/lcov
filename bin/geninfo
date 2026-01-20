@@ -540,7 +540,7 @@ parse_compat_modes($opt_compat);
 parse_ignore_errors(@ignore_errors);
 
 # Make sure test names only contain valid characters
-if ($test_name =~ s/\W/_/g)
+if ($test_name =~ s/[^a-zA-Z0-9_.@-]/_/g)
 {
 	warn("WARNING: invalid characters removed from testname!\n");
 }
@@ -549,7 +549,7 @@ if ($test_name =~ s/\W/_/g)
 if ($adjust_testname)
 {
 	$test_name .= "__".`uname -a`;
-	$test_name =~ s/\W/_/g;
+	$test_name =~ s/[^a-zA-Z0-9_.@-]/_/g;
 }
 
 # Make sure base_directory contains an absolute path specification

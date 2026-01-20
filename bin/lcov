@@ -1655,7 +1655,7 @@ sub read_info_file($)
 			{
 				# Test name information found
 				$testname = defined($1) ? $1 : "";
-				if ($testname =~ s/\W/_/g)
+				if ($testname =~ s/[^a-zA-Z0-9_.@-]/_/g)
 				{
 					$changed_testname = 1;
 				}
